@@ -1,4 +1,4 @@
-<img src="https://github.com/jchristn/NeverBounce/raw/main/assets/icon.png" width="150" height="150">
+<img src="https://github.com/jchristn/NeverBounce/raw/main/Assets/icon.png" width="150" height="150">
 
 # NeverBounce
 
