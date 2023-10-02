@@ -114,15 +114,17 @@ namespace NeverBounce
         /// <param name="email">Email address.</param>
         /// <param name="ts">Timestamps.</param>
         /// <param name="timeoutMs">Timeout in milliseconds.</param>
+        /// <param name="includeRawResponse">Flag to indicate if the server's raw response should be included.</param>
         /// <param name="retryAttempts">Number of attempts already completed.</param>
         /// <returns>True if verified.</returns>
         public EmailValidationResult Verify(
             string email, 
             Timestamp ts = null,
             int? timeoutMs = null, 
+            bool includeRawResponse = false,
             int retryAttempts = 0)
         {
-            return VerifyAsync(email, ts, timeoutMs, retryAttempts).Result;
+            return VerifyAsync(email, ts, timeoutMs, includeRawResponse, retryAttempts).Result;
         }
 
         /// <summary>
@@ -131,14 +133,16 @@ namespace NeverBounce
         /// <param name="email">Email address.</param>
         /// <param name="ts">Timestamps.</param>
         /// <param name="timeoutMs">Timeout in milliseconds.</param>
+        /// <param name="includeRawResponse">Flag to indicate if the server's raw response should be included.</param>
         /// <param name="retryAttempts">Number of attempts already completed.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if verified.</returns>
         public async Task<EmailValidationResult> VerifyAsync(
             string email, 
             Timestamp ts = null, 
-            int? timeoutMs = null, 
-            int retryAttempts = 0, 
+            int? timeoutMs = null,
+            bool includeRawResponse = false,
+            int retryAttempts = 0,
             CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(email)) throw new ArgumentNullException(nameof(email));
@@ -199,6 +203,7 @@ namespace NeverBounce
                 }
             }
 
+            if (!includeRawResponse) ret.Raw = null;
             return ret;
         }
 

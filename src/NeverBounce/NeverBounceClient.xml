@@ -132,23 +132,25 @@
             Instantiate.
             </summary>
         </member>
-        <member name="M:NeverBounce.NeverBounceClient.Verify(System.String,Timestamps.Timestamp,System.Nullable{System.Int32},System.Int32)">
+        <member name="M:NeverBounce.NeverBounceClient.Verify(System.String,Timestamps.Timestamp,System.Nullable{System.Int32},System.Boolean,System.Int32)">
             <summary>
             Verify an email address.
             </summary>
             <param name="email">Email address.</param>
             <param name="ts">Timestamps.</param>
             <param name="timeoutMs">Timeout in milliseconds.</param>
+            <param name="includeRawResponse">Flag to indicate if the server's raw response should be included.</param>
             <param name="retryAttempts">Number of attempts already completed.</param>
             <returns>True if verified.</returns>
         </member>
-        <member name="M:NeverBounce.NeverBounceClient.VerifyAsync(System.String,Timestamps.Timestamp,System.Nullable{System.Int32},System.Int32,System.Threading.CancellationToken)">
+        <member name="M:NeverBounce.NeverBounceClient.VerifyAsync(System.String,Timestamps.Timestamp,System.Nullable{System.Int32},System.Boolean,System.Int32,System.Threading.CancellationToken)">
             <summary>
             Verify an email address.
             </summary>
             <param name="email">Email address.</param>
             <param name="ts">Timestamps.</param>
             <param name="timeoutMs">Timeout in milliseconds.</param>
+            <param name="includeRawResponse">Flag to indicate if the server's raw response should be included.</param>
             <param name="retryAttempts">Number of attempts already completed.</param>
             <param name="token">Cancellation token.</param>
             <returns>True if verified.</returns>

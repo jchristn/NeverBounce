@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.1;net6.0;net7.0</TargetFrameworks>
-		<Version>1.0.1</Version>
+		<Version>1.0.2</Version>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<DocumentationFile>NeverBounceClient.xml</DocumentationFile>
