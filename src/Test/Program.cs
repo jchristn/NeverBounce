@@ -1,15 +1,17 @@
 ﻿using System;
+using System.Threading.Tasks;
 using NeverBounce;
 using GetSomeInput;
-using Newtonsoft.Json;
 
 namespace Test
 {
     internal class Program
     {
         static NeverBounceClient _Client = null;
+        static SerializationHelper _Serializer = new SerializationHelper();
+        static int? _TimeoutMs = 2000;
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         { 
             string apiKey = Inputty.GetString("API key:", null, false);
             _Client = new NeverBounceClient(apiKey);
@@ -24,11 +26,12 @@ namespace Test
                 {
                     Console.WriteLine("");
                     Console.WriteLine("Available commands:");
-                    Console.WriteLine("  ?         help, this menu");
-                    Console.WriteLine("  q         quit");
-                    Console.WriteLine("  cls       clear the screen");
-                    Console.WriteLine("  retries   set the NeverBounce client retry count");
-                    Console.WriteLine("  [value]   verify an email address");
+                    Console.WriteLine("  ?               help, this menu");
+                    Console.WriteLine("  q               quit");
+                    Console.WriteLine("  cls             clear the screen");
+                    Console.WriteLine("  retries         set the NeverBounce client retry count");
+                    Console.WriteLine("  [value]         verify an email address");
+                    Console.WriteLine("  async [value]   verify an email address asynchronously");
                     Console.WriteLine("");
                 }
                 else if (userInput.Equals("q") || userInput.Equals("Q"))
@@ -45,41 +48,27 @@ namespace Test
                     int newAmount = Inputty.GetInteger("New retry count:", _Client.RetryAttempts, true, false);
                     _Client.RetryAttempts = newAmount;
                 }
+                else if (userInput.StartsWith("async ") && userInput.Length > 6)
+                {
+                    await VerifyEmailAsync(userInput.Substring(6));
+                }
                 else
                 {
-                    EmailValidationResult result = _Client.Verify(userInput);
-                    Console.WriteLine(SerializeJson(result, true));
+                    VerifyEmail(userInput);
                 }
             }
         }
 
-        private static string SerializeJson(object obj, bool pretty)
+        static void VerifyEmail(string userInput)
         {
-            if (obj == null) return null;
-            string json;
+            EmailValidationResult result = _Client.Verify(userInput, null, _TimeoutMs);
+            Console.WriteLine(_Serializer.SerializeJson(result, true));
+        }
 
-            if (pretty)
-            {
-                json = JsonConvert.SerializeObject(
-                  obj,
-                  Newtonsoft.Json.Formatting.Indented,
-                  new JsonSerializerSettings
-                  {
-                      NullValueHandling = NullValueHandling.Ignore,
-                      DateTimeZoneHandling = DateTimeZoneHandling.Utc,
-                  });
-            }
-            else
-            {
-                json = JsonConvert.SerializeObject(obj,
-                  new JsonSerializerSettings
-                  {
-                      NullValueHandling = NullValueHandling.Ignore,
-                      DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                  });
-            }
-
-            return json;
+        static async Task VerifyEmailAsync(string userInput)
+        {
+            EmailValidationResult result = await _Client.VerifyAsync(userInput, null, _TimeoutMs);
+            Console.WriteLine(_Serializer.SerializeJson(result, true));
         }
     }
 }

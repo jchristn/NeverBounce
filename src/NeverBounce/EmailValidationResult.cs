@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Timestamps;
 
 namespace NeverBounce
 {
@@ -16,31 +17,31 @@ namespace NeverBounce
         /// <summary>
         /// Timestamps.
         /// </summary>
-        [JsonProperty(Order = -2)]
-        public Timestamps Time { get; set; } = new Timestamps();
+        [JsonPropertyOrder(-2)]
+        public Timestamp Time { get; set; } = new Timestamp();
 
         /// <summary>
         /// Indicates if the email address is valid.
         /// </summary>
-        [JsonProperty(Order = -1)]
+        [JsonPropertyOrder(-1)]
         public bool Valid { get; set; } = false;
 
         /// <summary>
         /// Additional response data.
         /// </summary>
-        [JsonProperty(Order = 990)]
+        [JsonPropertyOrder(990)]
         public EmailValidationFlags Flags { get; set; } = new EmailValidationFlags();
 
         /// <summary>
         /// Exception data.
         /// </summary>
-        [JsonProperty(Order = 991)]
+        [JsonPropertyOrder(991)]
         public Exception Exception { get; set; } = null;
 
         /// <summary>
         /// Raw response data.
         /// </summary>
-        [JsonProperty(Order = 992)]
+        [JsonPropertyOrder(992)]
         public object Raw { get; set; } = null;
 
         #endregion
@@ -62,28 +63,21 @@ namespace NeverBounce
         /// <summary>
         /// Instantiate the object.
         /// </summary>
-        /// <param name="resp">NeverBounce result.</param>
+        /// <param name="result">NeverBounce result.</param>
         /// <returns>Email validation result.</returns>
-        public static EmailValidationResult FromNeverBounceResult(JObject resp)
+        public static EmailValidationResult FromNeverBounceResult(NeverBounceResult result)
         {
             EmailValidationResult ret = new EmailValidationResult();
-            ret.Raw = resp;
+            ret.Raw = result;
 
-            if (resp != null)
+            if (result != null)
             {
-                if (resp.ContainsKey("status")
-                    && resp.ContainsKey("result")
-                    && resp["status"] != null
-                    && resp["result"] != null
-                    && !String.IsNullOrEmpty(resp["status"].ToString())
-                    && !String.IsNullOrEmpty(resp["result"].ToString()))
+                if (!String.IsNullOrEmpty(result.Status)
+                    && !String.IsNullOrEmpty(result.Result))
                 {
-                    if (resp.ContainsKey("flags") && resp["flags"] != null)
+                    if (result.Flags != null && result.Flags.Count > 0)
                     {
-                        JArray jArray = (JArray)(resp["flags"]);
-                        List<string> flags = jArray.ToObject<List<string>>();
-
-                        foreach (string flag in flags)
+                        foreach (string flag in result.Flags)
                         {
                             if (String.IsNullOrEmpty(flag)) continue;
                             else if (flag.Equals("contains_alias"))
@@ -121,9 +115,9 @@ namespace NeverBounce
                         }
                     }
 
-                    if (resp["status"].ToString().Equals("success"))
+                    if (result.Status.Equals("success"))
                     {
-                        if (resp["result"].ToString().Equals("valid") || resp["result"].ToString().Equals("catchall"))
+                        if (result.Result.Equals("valid") || result.Result.Equals("catchall"))
                         {
                             ret.Valid = true;
                         }
@@ -131,7 +125,7 @@ namespace NeverBounce
 
                     if (ret.Flags.SmtpConnectable != null && ret.Flags.SmtpConnectable.Value)
                     {
-                        if (resp["result"].ToString().Equals("unknown") || resp["result"].ToString().Equals("catchall"))
+                        if (result.Result.Equals("unknown") || result.Result.Equals("catchall"))
                         {
                             ret.Valid = true;
                         }

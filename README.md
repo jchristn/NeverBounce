@@ -10,7 +10,11 @@ NeverBounce is a simple library for validating email addresses using the [NeverB
 ```csharp
 using NeverBounce;
 NeverBounceClient client = new NeverBounceClient("[your API key]");
-EmailValidationResult result = client.Verify("[some email address]");
+EmailValidationResult result;
+
+result = client.Verify("[some email address]");
+result = await client.VerifyAsync("[some email address]");
+
 if (result.Valid)
 {
   // success

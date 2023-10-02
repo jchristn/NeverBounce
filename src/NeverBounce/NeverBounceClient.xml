@@ -39,11 +39,11 @@
             Instantiate the object.
             </summary>
         </member>
-        <member name="M:NeverBounce.EmailValidationResult.FromNeverBounceResult(Newtonsoft.Json.Linq.JObject)">
+        <member name="M:NeverBounce.EmailValidationResult.FromNeverBounceResult(NeverBounce.NeverBounceResult)">
             <summary>
             Instantiate the object.
             </summary>
-            <param name="resp">NeverBounce result.</param>
+            <param name="result">NeverBounce result.</param>
             <returns>Email validation result.</returns>
         </member>
         <member name="T:NeverBounce.EmailValidationResult.EmailValidationFlags">
@@ -132,39 +132,106 @@
             Instantiate.
             </summary>
         </member>
-        <member name="M:NeverBounce.NeverBounceClient.Verify(System.String,NeverBounce.Timestamps,System.Int32)">
+        <member name="M:NeverBounce.NeverBounceClient.Verify(System.String,Timestamps.Timestamp,System.Nullable{System.Int32},System.Int32)">
             <summary>
             Verify an email address.
             </summary>
             <param name="email">Email address.</param>
             <param name="ts">Timestamps.</param>
+            <param name="timeoutMs">Timeout in milliseconds.</param>
             <param name="retryAttempts">Number of attempts already completed.</param>
             <returns>True if verified.</returns>
         </member>
-        <member name="T:NeverBounce.Timestamps">
+        <member name="M:NeverBounce.NeverBounceClient.VerifyAsync(System.String,Timestamps.Timestamp,System.Nullable{System.Int32},System.Int32,System.Threading.CancellationToken)">
             <summary>
-            Object used to measure start, end, and total time associated with an operation.
+            Verify an email address.
+            </summary>
+            <param name="email">Email address.</param>
+            <param name="ts">Timestamps.</param>
+            <param name="timeoutMs">Timeout in milliseconds.</param>
+            <param name="retryAttempts">Number of attempts already completed.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>True if verified.</returns>
+        </member>
+        <member name="T:NeverBounce.NeverBounceResult">
+            <summary>
+            Result from NeverBounce.
             </summary>
         </member>
-        <member name="P:NeverBounce.Timestamps.Start">
+        <member name="P:NeverBounce.NeverBounceResult.Status">
             <summary>
-            The time at which the operation started.
+            Status.
             </summary>
         </member>
-        <member name="P:NeverBounce.Timestamps.End">
+        <member name="P:NeverBounce.NeverBounceResult.Result">
             <summary>
-            The time at which the operation ended.
+            Result.
             </summary>
         </member>
-        <member name="P:NeverBounce.Timestamps.TotalMs">
+        <member name="P:NeverBounce.NeverBounceResult.Flags">
             <summary>
-            The total number of milliseconds that transpired between Start and End.
+            Flags.
             </summary>
         </member>
-        <member name="M:NeverBounce.Timestamps.#ctor">
+        <member name="M:NeverBounce.NeverBounceResult.#ctor">
             <summary>
-            Instantiate the object.
+            Instantiate.
             </summary>
+        </member>
+        <member name="T:NeverBounce.SerializationHelper">
+            <summary>
+            Default serialization helper.
+            </summary>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.InstantiateConverter">
+            <summary>
+            Instantiation method to support fixups for various environments, e.g. Unity.
+            </summary>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.DeserializeJson``1(System.String)">
+            <summary>
+            Deserialize JSON to an instance.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="json">JSON string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.SerializeJson(System.Object,System.Boolean)">
+            <summary>
+            Serialize object to JSON.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>JSON.</returns>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.DeserializeXml``1(System.Byte[])">
+            <summary>
+            Deserialize XML.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="bytes">XML data.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.DeserializeXml``1(System.String)">
+            <summary>
+            Deserialize XML.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="xml">XML string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:NeverBounce.SerializationHelper.SerializeXml(System.Object,System.Boolean)">
+            <summary>
+            Serialize XML.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>XML string.</returns>
         </member>
     </members>
 </doc>

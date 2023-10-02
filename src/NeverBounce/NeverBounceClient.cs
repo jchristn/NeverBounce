@@ -1,7 +1,8 @@
 ﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using RestWrapper;
+using Timestamps;
 
 namespace NeverBounce
 {
@@ -84,6 +85,7 @@ namespace NeverBounce
 
         #region Private-Members
 
+        private SerializationHelper _Serializer = new SerializationHelper();
         private string _ApiKey = null;
         private string _Endpoint = "https://api.neverbounce.com/v4";
         private int _RetryAttempts = 1;
@@ -111,16 +113,40 @@ namespace NeverBounce
         /// </summary>
         /// <param name="email">Email address.</param>
         /// <param name="ts">Timestamps.</param>
+        /// <param name="timeoutMs">Timeout in milliseconds.</param>
         /// <param name="retryAttempts">Number of attempts already completed.</param>
         /// <returns>True if verified.</returns>
-        public EmailValidationResult Verify(string email, Timestamps ts = null, int retryAttempts = 0)
+        public EmailValidationResult Verify(
+            string email, 
+            Timestamp ts = null,
+            int? timeoutMs = null, 
+            int retryAttempts = 0)
+        {
+            return VerifyAsync(email, ts, timeoutMs, retryAttempts).Result;
+        }
+
+        /// <summary>
+        /// Verify an email address.
+        /// </summary>
+        /// <param name="email">Email address.</param>
+        /// <param name="ts">Timestamps.</param>
+        /// <param name="timeoutMs">Timeout in milliseconds.</param>
+        /// <param name="retryAttempts">Number of attempts already completed.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>True if verified.</returns>
+        public async Task<EmailValidationResult> VerifyAsync(
+            string email, 
+            Timestamp ts = null, 
+            int? timeoutMs = null, 
+            int retryAttempts = 0, 
+            CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(email)) throw new ArgumentNullException(nameof(email));
             if (retryAttempts < 0) throw new ArgumentException("Retry attempts must be zero or greater.");
 
             Logger?.Invoke(_Header + "requesting validation (" + retryAttempts + "/" + _RetryAttempts + ") for: " + email);
 
-            if (ts == null) ts = new Timestamps();
+            if (ts == null) ts = new Timestamp();
 
             if (email.Contains("+")) email = email.Replace("+", "%2B");
 
@@ -129,8 +155,14 @@ namespace NeverBounce
             Logger?.Invoke(_Header + "using URL: " + url.Replace(_ApiKey, "[redacted]"));
 
             RestRequest req = new RestRequest(url);
-            RestResponse resp = req.Send();
-            EmailValidationResult ret = new EmailValidationResult();
+            if (timeoutMs != null && timeoutMs.Value > 0) req.TimeoutMilliseconds = timeoutMs.Value;
+
+            RestResponse resp = await req.SendAsync(token).ConfigureAwait(false);
+            NeverBounceResult nbr = null;
+            EmailValidationResult ret = new EmailValidationResult
+            {
+                Time = ts
+            };
 
             if (resp != null && resp.StatusCode == 200)
             {
@@ -138,9 +170,8 @@ namespace NeverBounce
 
                 try
                 {
-                    JObject respData = JObject.Parse(resp.DataAsString);
-                    ret = EmailValidationResult.FromNeverBounceResult(respData);
-                    ret.Time = ts;
+                    nbr = _Serializer.DeserializeJson<NeverBounceResult>(resp.DataAsString);
+                    ret = EmailValidationResult.FromNeverBounceResult(nbr);
                 }
                 catch (Exception e)
                 {
