@@ -199,7 +199,13 @@ namespace NeverBounce
                 if (retryAttempts < RetryAttempts)
                 {
                     retryAttempts += 1;
-                    return Verify(email, ts, retryAttempts);
+                    return await VerifyAsync(
+                        email,
+                        ts,
+                        timeoutMs,
+                        includeRawResponse,
+                        retryAttempts,
+                        token);
                 }
             }
 

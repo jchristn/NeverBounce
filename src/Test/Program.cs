@@ -15,6 +15,7 @@ namespace Test
         { 
             string apiKey = Inputty.GetString("API key:", null, false);
             _Client = new NeverBounceClient(apiKey);
+            _Client.Logger = Console.WriteLine;
 
             while (true)
             {
