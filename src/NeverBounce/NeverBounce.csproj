@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-		<Version>1.0.3</Version>
+		<TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+		<Version>1.0.4</Version>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<DocumentationFile>NeverBounceClient.xml</DocumentationFile>
@@ -28,7 +28,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="RestWrapper" Version="3.0.18" />
+		<PackageReference Include="RestWrapper" Version="3.1.4" />
 	</ItemGroup>
 
 	<ItemGroup>
