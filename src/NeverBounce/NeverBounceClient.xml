@@ -155,6 +155,17 @@
             <param name="token">Cancellation token.</param>
             <returns>True if verified.</returns>
         </member>
+        <member name="M:NeverBounce.NeverBounceClient.Dispose(System.Boolean)">
+            <summary>
+            Dispose of resources.
+            </summary>
+            <param name="disposing">Disposing.</param>
+        </member>
+        <member name="M:NeverBounce.NeverBounceClient.Dispose">
+            <summary>
+            Dispose of resources.
+            </summary>
+        </member>
         <member name="T:NeverBounce.NeverBounceResult">
             <summary>
             Result from NeverBounce.

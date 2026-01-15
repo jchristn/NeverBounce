@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using RestWrapper;
@@ -9,7 +10,7 @@ namespace NeverBounce
     /// <summary>
     /// NeverBounce client.
     /// </summary>
-    public class NeverBounceClient
+    public class NeverBounceClient : IDisposable
     {
         #region Public-Members
 
@@ -89,6 +90,7 @@ namespace NeverBounce
         private string _ApiKey = null;
         private string _Endpoint = "https://api.neverbounce.com/v4";
         private int _RetryAttempts = 1;
+        private bool _Disposed = false;
 
         #endregion
 
@@ -138,13 +140,14 @@ namespace NeverBounce
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if verified.</returns>
         public async Task<EmailValidationResult> VerifyAsync(
-            string email, 
-            Timestamp ts = null, 
+            string email,
+            Timestamp ts = null,
             int? timeoutMs = null,
             bool includeRawResponse = false,
             int retryAttempts = 0,
             CancellationToken token = default)
         {
+            if (_Disposed) throw new ObjectDisposedException(nameof(NeverBounceClient));
             if (String.IsNullOrEmpty(email)) throw new ArgumentNullException(nameof(email));
             if (retryAttempts < 0) throw new ArgumentException("Retry attempts must be zero or greater.");
 
@@ -158,38 +161,44 @@ namespace NeverBounce
 
             Logger?.Invoke(_Header + "using URL: " + url.Replace(_ApiKey, "[redacted]"));
 
-            RestRequest req = new RestRequest(url);
-            if (timeoutMs != null && timeoutMs.Value > 0) req.TimeoutMilliseconds = timeoutMs.Value;
-
-            RestResponse resp = await req.SendAsync(token).ConfigureAwait(false);
             NeverBounceResult nbr = null;
             EmailValidationResult ret = new EmailValidationResult
             {
                 Time = ts
             };
 
-            if (resp != null && resp.StatusCode == 200)
+            using (RestRequest req = new RestRequest(url))
             {
-                Logger?.Invoke(_Header + "retrieved " + resp.ContentLength + " bytes with status " + resp.StatusCode + Environment.NewLine + resp.DataAsString);
+                if (timeoutMs != null && timeoutMs.Value > 0) req.TimeoutMilliseconds = timeoutMs.Value;
 
-                try
+                using (RestResponse resp = await req.SendAsync(token).ConfigureAwait(false))
                 {
-                    nbr = _Serializer.DeserializeJson<NeverBounceResult>(resp.DataAsString);
-                    ret = EmailValidationResult.FromNeverBounceResult(nbr);
+                    if (resp != null && resp.StatusCode == 200)
+                    {
+                        string responseBody = await GetResponseBodyAsync(resp, token).ConfigureAwait(false);
+                        Logger?.Invoke(_Header + "retrieved " + resp.ContentLength + " bytes with status " + resp.StatusCode + Environment.NewLine + responseBody);
+
+                        try
+                        {
+                            nbr = _Serializer.DeserializeJson<NeverBounceResult>(responseBody);
+                            ret = EmailValidationResult.FromNeverBounceResult(nbr);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger?.Invoke(_Header + "exception processing for email " + email + ": " + e.Message);
+                            ret.Exception = e;
+                        }
+                    }
+                    else if (resp != null)
+                    {
+                        string responseBody = await GetResponseBodyAsync(resp, token).ConfigureAwait(false);
+                        Logger?.Invoke(_Header + "unable to validate email " + email + ", status " + resp.StatusCode + Environment.NewLine + responseBody);
+                    }
+                    else
+                    {
+                        Logger?.Invoke(_Header + "unable to validate email " + email + " (unable to retrieve response from server)");
+                    }
                 }
-                catch (Exception e)
-                {
-                    Logger?.Invoke(_Header + "exception processing for email " + email + ": " + e.Message);
-                    ret.Exception = e;
-                }
-            }
-            else if (resp != null)
-            {
-                Logger?.Invoke(_Header + "unable to validate email " + email + ", status " + resp.StatusCode + Environment.NewLine + resp.DataAsString);
-            }
-            else
-            {
-                Logger?.Invoke(_Header + "unable to validate email " + email + " (unable to retrieve response from server)");
             }
 
             ret.Time.End = DateTime.Now.ToUniversalTime();
@@ -216,6 +225,62 @@ namespace NeverBounce
         #endregion
 
         #region Private-Methods
+
+        private async Task<string> GetResponseBodyAsync(RestResponse resp, CancellationToken token = default)
+        {
+            if (resp == null) return null;
+
+            if (resp.ChunkedTransferEncoding)
+            {
+                StringBuilder sb = new StringBuilder();
+                ChunkData chunk;
+
+                while ((chunk = await resp.ReadChunkAsync(token).ConfigureAwait(false)) != null)
+                {
+                    if (chunk.Data != null && chunk.Data.Length > 0)
+                    {
+                        sb.Append(Encoding.UTF8.GetString(chunk.Data));
+                    }
+
+                    if (chunk.IsFinal) break;
+                }
+
+                return sb.ToString();
+            }
+            else
+            {
+                return resp.DataAsString;
+            }
+        }
+
+        /// <summary>
+        /// Dispose of resources.
+        /// </summary>
+        /// <param name="disposing">Disposing.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_Disposed)
+            {
+                if (disposing)
+                {
+                    _Serializer = null;
+                    _ApiKey = null;
+                    _Endpoint = null;
+                    Logger = null;
+                }
+
+                _Disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Dispose of resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
 
         #endregion
     }
