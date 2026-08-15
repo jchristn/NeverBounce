@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore src/NeverBounce.sln
+
+      - name: Build
+        run: dotnet build src/NeverBounce.sln --no-restore -c Release
+
+      - name: Run console tests
+        run: dotnet run --project src/Test.Automated -c Release -- --results results.json
+
+      - name: Run xUnit tests
+        run: dotnet test src/Test.Xunit -c Release
+
+      - name: Run NUnit tests
+        run: dotnet test src/Test.Nunit -c Release
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: results.json

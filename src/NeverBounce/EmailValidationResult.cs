@@ -103,12 +103,10 @@ namespace NeverBounce
                             else if (flag.Equals("profanity"))
                             {
                                 ret.Flags.ContainsProfanity = true;
-                                ret.Valid = false;
                             }
                             else if (flag.Equals("disposable_email"))
                             {
                                 ret.Flags.IsDisposableAddress = true;
-                                ret.Valid = false;
                             }
 
                             ret.Flags.AllFlags.Add(flag);
@@ -129,6 +127,14 @@ namespace NeverBounce
                         {
                             ret.Valid = true;
                         }
+                    }
+
+                    // Profanity and disposable addresses are always treated as invalid,
+                    // overriding any positive result determined above.
+                    if ((ret.Flags.ContainsProfanity != null && ret.Flags.ContainsProfanity.Value)
+                        || (ret.Flags.IsDisposableAddress != null && ret.Flags.IsDisposableAddress.Value))
+                    {
+                        ret.Valid = false;
                     }
                 }
             }

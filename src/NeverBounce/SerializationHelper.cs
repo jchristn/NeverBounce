@@ -265,6 +265,7 @@ namespace NeverBounce
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         private class XmlWriterExtended : XmlWriter
         {
             private XmlWriter baseWriter;
