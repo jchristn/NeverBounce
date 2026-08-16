@@ -204,6 +204,16 @@ namespace Test.Shared
                             return Task.CompletedTask;
                         }),
 
+                    new TestCaseDescriptor("ClientConfig", "RetryAttemptsDefault", "RetryAttempts defaults to one",
+                        executeAsync: _ =>
+                        {
+                            using (NeverBounceClient client = new NeverBounceClient("abc"))
+                            {
+                                Assert(client.RetryAttempts == 1, "Expected default RetryAttempts of 1");
+                            }
+                            return Task.CompletedTask;
+                        }),
+
                     new TestCaseDescriptor("ClientConfig", "RetryAttemptsSetValid", "RetryAttempts setter accepts a positive value",
                         executeAsync: _ =>
                         {
@@ -433,6 +443,30 @@ namespace Test.Shared
                                 EmailValidationResult result = await client.VerifyAsync("eventual@example.com", token: ct).ConfigureAwait(false);
                                 Assert(result.Valid, "Expected valid after retry");
                                 Assert(server.RequestCount == 2, "Expected 2 requests, got " + server.RequestCount);
+                            }
+                        }),
+
+                    new TestCaseDescriptor("Verify", "RetryParameterAtMaxNoRetry", "A retryAttempts argument already at the limit performs no retry",
+                        executeAsync: async ct =>
+                        {
+                            using (MockNeverBounceServer server = MockNeverBounceServer.Constant(200, InvalidJson))
+                            using (NeverBounceClient client = BuildClient(server, retryAttempts: 3))
+                            {
+                                EmailValidationResult result = await client.VerifyAsync("nomore@example.com", retryAttempts: 3, token: ct).ConfigureAwait(false);
+                                Assert(!result.Valid, "Expected invalid");
+                                Assert(server.RequestCount == 1, "Expected a single request when starting at the retry limit, got " + server.RequestCount);
+                            }
+                        }),
+
+                    new TestCaseDescriptor("Verify", "ValidFirstTryNoRetry", "A valid first response is not retried",
+                        executeAsync: async ct =>
+                        {
+                            using (MockNeverBounceServer server = MockNeverBounceServer.Constant(200, ValidJson))
+                            using (NeverBounceClient client = BuildClient(server, retryAttempts: 3))
+                            {
+                                EmailValidationResult result = await client.VerifyAsync("once@example.com", token: ct).ConfigureAwait(false);
+                                Assert(result.Valid, "Expected valid");
+                                Assert(server.RequestCount == 1, "Expected exactly one request for a valid first try, got " + server.RequestCount);
                             }
                         }),
 
@@ -707,6 +741,106 @@ namespace Test.Shared
                             };
                             EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
                             Assert(r.Flags.AllFlags.Contains("some_new_flag"), "Expected unknown flag preserved");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "UnknownWithoutSmtpInvalid", "success/unknown without smtp_connectable is invalid",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult { Status = "success", Result = "unknown" };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(!r.Valid, "Expected invalid for unknown without smtp_connectable");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "NonSuccessStatusValidResultInvalid", "A non-success status is invalid even when result is valid",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult { Status = "general_failure", Result = "valid" };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(!r.Valid, "Expected invalid when status is not success");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "SmtpConnectableInvalidStaysInvalid", "smtp_connectable does not rescue an invalid result",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult
+                            {
+                                Status = "success",
+                                Result = "invalid",
+                                Flags = new List<string> { "smtp_connectable" }
+                            };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(!r.Valid, "Expected invalid; smtp_connectable only applies to unknown/catchall");
+                            Assert(r.Flags.SmtpConnectable == true, "Expected SmtpConnectable flag");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "SmtpConnectableUnknownValid", "smtp_connectable rescues an unknown result",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult
+                            {
+                                Status = "success",
+                                Result = "unknown",
+                                Flags = new List<string> { "smtp_connectable" }
+                            };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(r.Valid, "Expected valid when smtp_connectable and result unknown");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "DisposableOverridesSmtpValid", "Disposable flag overrides an smtp-derived valid",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult
+                            {
+                                Status = "success",
+                                Result = "catchall",
+                                Flags = new List<string> { "smtp_connectable", "disposable_email" }
+                            };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(!r.Valid, "Expected disposable to override an smtp/catchall valid");
+                            Assert(r.Flags.IsDisposableAddress == true, "Expected IsDisposableAddress flag");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "FreeEmailHostMapsToIsFreeService", "free_email_host maps to IsFreeService",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult
+                            {
+                                Status = "success",
+                                Result = "valid",
+                                Flags = new List<string> { "free_email_host" }
+                            };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(r.Valid, "Expected valid");
+                            Assert(r.Flags.IsFreeService == true, "Expected IsFreeService flag");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "ContainsAliasMapsFlag", "contains_alias maps to ContainsAlias",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult
+                            {
+                                Status = "success",
+                                Result = "valid",
+                                Flags = new List<string> { "contains_alias" }
+                            };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(r.Flags.ContainsAlias == true, "Expected ContainsAlias flag");
+                            return Task.CompletedTask;
+                        }),
+
+                    new TestCaseDescriptor("ResultMapping", "EmptyResultInvalid", "An empty result string is invalid",
+                        executeAsync: _ =>
+                        {
+                            NeverBounceResult nbr = new NeverBounceResult { Status = "success", Result = string.Empty };
+                            EmailValidationResult r = EmailValidationResult.FromNeverBounceResult(nbr);
+                            Assert(!r.Valid, "Expected invalid when result is empty");
                             return Task.CompletedTask;
                         }),
 
